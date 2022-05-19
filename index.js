@@ -4,7 +4,7 @@ const io = new Server({
     cors: {
         origin: "http://localhost:3000",
         methods: ["GET", "POST"],
-        allowedHeaders: ["my-custom-header"],
+        allowedHeaders: ["Access-Control-Allow-Origin"],
         credentials: true
       }
 });
