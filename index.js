@@ -11,7 +11,6 @@ const io = new Server(server,{
       }
 });
 
-app.use(cors())
 
 app.get('/',(req,res)=>{
     res.send("App Listening Success!")
