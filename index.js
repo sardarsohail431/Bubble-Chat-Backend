@@ -2,10 +2,7 @@ import { Server } from "socket.io";
 
 const io = new Server({ 
     cors: {
-        origin: "http://localhost:3000",
-        methods: ["GET", "POST"],
-        allowedHeaders: ["Access-Control-Allow-Origin"],
-        credentials: true
+        origin: '*',
       }
 });
 
