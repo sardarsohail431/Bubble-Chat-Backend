@@ -1,10 +1,21 @@
 import { Server } from "socket.io";
+import {createServer} from 'http'
+import express from "express";
+import cors from "cors"
 
-const io = new Server({ 
+const app = express()
+const server = createServer(app)
+const io = new Server(server,{ 
     cors: {
         origin: '*',
       }
 });
+
+app.use(cors())
+
+app.get('/',(req,res)=>{
+    res.send("App Listening Success!")
+})
 
 let userCart=[];
 
@@ -165,4 +176,4 @@ io.on("connection", (socket) => {
   })
 });
 
-io.listen(5000);
+server.listen(5000)
