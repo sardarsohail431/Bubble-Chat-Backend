@@ -18,9 +18,9 @@ app.get('/',(req,res)=>{
 
 let userCart=[];
 
-const addUser=(uid,socketId)=>{
+const addUser=(uid,socketId,name,peerId)=>{
     !userCart.some((user)=>user.uid===uid) &&
-    userCart.push({uid,socketId})
+    userCart.push({uid,socketId,name,peerId})
 }
 
 const removeUser=(socketId)=>{
@@ -34,8 +34,9 @@ const getUser=(uid)=>{
 io.on("connection", (socket) => {
     console.log('App Connected')
     console.log(userCart)
-  socket.on('nUser',(uid)=>{
-      addUser(uid,socket.id);
+  socket.on('nUser',({uid,name,peerId})=>{
+      console.log("ran")
+      addUser(uid,socket.id,name,peerId);
       console.log('nUser',userCart)
   })
 
@@ -59,19 +60,6 @@ io.on("connection", (socket) => {
         io.to(caller.socketId).emit("calleeCancel")
     }
   })
-
-// Adding Peer Value In UserCart
-//   socket.on("addPeer",({peerId,id})=>{
-//    const filter = userCart.filter((item)=>item.uid===id)
-//    const newObj = filter[0]
-//    const reformObj = {
-//        ...newObj,
-//        peerId
-//    }
-//    const filter2 = userCart.filter((item)=>item.uid!==id)
-//    userCart=[...filter2,reformObj]
-//    console.log(userCart,'uc')
-//   })
 
  socket.on("callAccepted",({id,peerId})=>{
     const otherUser = getUser(id)
@@ -164,14 +152,99 @@ io.on("connection", (socket) => {
      })
   })
 
+  socket.on("groupCallIncoming",({initiatorName,initiator,admin,members,roomId,callType,groupImg,groupName,groupId})=>{
+    socket.join(roomId)
+    members.forEach((member)=>{
+        const findSocket = getUser(member)
+        if(findSocket){
+            io.to(findSocket.socketId).emit("groupCallComing",{initiator,initiatorName,admin,roomId,callType,groupImg,groupName,groupId})
+        }
+    })
+  })
+
+  socket.on("joinRoom",(data)=>{
+   socket.join(data.roomId)
+   socket.broadcast.to(data.roomId).emit('userCame',data)
+  })
+
+//   socket.on("getDetails",({peerId,id})=>{
+//     const filter = userCart.filter((item)=>item.peerId===peerId)
+//     const filteredItem = filter[0]
+//     console.log(filteredItem)
+//     const userToSend = getUser(id)
+//     if(userToSend){
+//         io.to(userToSend.socketId).emit("takeDetails",{
+//             user:filteredItem?.uid,
+//             peerId:filteredItem.peerId,
+//             name:filteredItem.name
+//         })
+//     }
+//   })
+
+  socket.on("groupInitiatorLeft",(mems)=>{
+      mems.forEach((member)=>{
+          const Member = getUser(member)
+          if(Member){
+              io.to(Member.socketId).emit("CallCanc")
+          }
+      })
+  })
+
+  socket.on("groupCallEnd",({peers,removedPeer})=>{
+      peers.forEach((peer)=>{
+          const filterPeer = userCart.filter((user)=>user.peerId===peer)
+          const filterObj = filterPeer[0]
+          if(filterObj){
+              io.to(filterObj.socketId).emit("checkEnd",removedPeer)
+          }
+      })
+  })
+
+  socket.on("videoOff",({id,peerz})=>{
+    peerz.forEach((peer)=>{
+        const sockId = userCart.filter((item)=>item.peerId===peer)[0]
+        if(sockId){
+            io.to(sockId.socketId).emit("vidOff",id)
+        }
+    })
+  })
+
+  socket.on("audioOff",({id,peerz})=>{
+    peerz.forEach((peer)=>{
+        const sockId = userCart.filter((item)=>item.peerId===peer)[0]
+        if(sockId){
+            io.to(sockId.socketId).emit("audOff",id)
+        }
+    })
+  })
+
+  socket.on("videoOn",({id,peerz})=>{
+    peerz.forEach((peer)=>{
+        const sockId = userCart.filter((item)=>item.peerId===peer)[0]
+        if(sockId){
+            io.to(sockId.socketId).emit("vidOn",id)
+        }
+    })
+  })
+
+  socket.on("audioOn",({id,peerz})=>{
+    peerz.forEach((peer)=>{
+        const sockId = userCart.filter((item)=>item.peerId===peer)[0]
+        if(sockId){
+            io.to(sockId.socketId).emit("audOn",id)
+        }
+    })
+  })
+
 
   socket.on('disconnect',()=>{
-      console.log(userCart)
       const gettingUser = userCart.filter((item)=>item.socketId===socket.id)
       removeUser(socket.id)
       userCart.forEach((user)=>{
        io.to(user.socketId).emit("userOut",gettingUser[0]?.uid)
+       io.to(user.socketId).emit("groupUserOut",gettingUser[0]?.peerId)
       })
+      console.log(userCart)
   })
 });
 
